@@ -502,7 +502,7 @@ export default () => {
 
                     const sound = new THREE.PositionalAudio( listener );
                     const audioLoader = new THREE.AudioLoader();
-                    audioLoader.load( 'audio/keys/' + noteTypesArray[keyColor][i] + keyTypes[keyColor] + b.toString() +'.ogg', function( buffer ) {
+                    audioLoader.load( baseUrl + 'audio/keys/' + noteTypesArray[keyColor][i] + keyTypes[keyColor] + b.toString() +'.ogg', function( buffer ) {
                         sound.setBuffer( buffer );
                         sound.setRefDistance( 1 );
                         sound.setVolume( 0.25 );
