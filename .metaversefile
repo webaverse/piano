@@ -1,0 +1,14 @@
+{
+  "name": "Piano",
+  "start_url": "index.js",
+  "components": [
+    {
+      "key": "sit",
+      "value": {
+        "subtype": "saddle",
+        "mountType": "flying",
+        "sitOffset": [0, 0.2, 0]
+      }
+    }
+    ]
+}
