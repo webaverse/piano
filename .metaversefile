@@ -1,5 +1,6 @@
 {
   "name": "Piano",
+  "description": "piano",
   "start_url": "index.js",
   "components": [
     {
