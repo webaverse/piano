@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import metaversefile from 'metaversefile';
 import { Vector3 } from 'three';
 
-const {useApp, useFrame, useLoaders, usePhysics, useCleanup, useLocalPlayer, useActivate, useScene, useCamera} = metaversefile;
+const {useApp, useFrame, useLoaders, usePhysics, useCleanup, useLocalPlayer, useActivate, useScene, useCamera, useRenderer} = metaversefile;
 
 const baseUrl = import.meta.url.replace(/(\/)[^\/\/]*$/, '$1'); 
 
@@ -59,6 +59,8 @@ export default () => {
 
     let blackMaterial = null;
     let whiteMaterial = null;
+
+    let beingPressed = false;
 
     function onDocumentKeyDown(event) {
         var keyCode = event.which;
@@ -271,6 +273,39 @@ export default () => {
         }
     }
 
+    const _playKeyIndex = (index) => {
+
+        //let obj = pianoKeys.find(o => o.key === (index + currentOctave).toString());
+        //let sound = obj.sound;
+
+        let objIndex = 0;
+        let obj = null;
+        let noteColor = "white";
+
+        /*if(index.length > 2) {
+            objIndex = blackPianoKeys.findIndex(o => o.key === (index).toString());
+            obj = blackPianoKeys[objIndex];
+            noteColor = "black";
+        }
+        else {
+            objIndex = whitePianoKeys.findIndex(o => o.key === (index).toString());
+            obj = whitePianoKeys[objIndex];
+            noteColor = "white";
+            //console.log(objIndex,obj,noteColor);
+        }*/
+
+        _changeColor(noteColor, index);
+        obj = whitePianoKeys[index];
+
+        if(obj.sound.isPlaying) {
+            obj.sound.stop();
+            obj.sound.play();
+        }
+        else {
+            obj.sound.play();
+        }
+    }
+
     const _changeColor = (noteColor, objIndex) => {
 
         let tempObj = null;
@@ -442,7 +477,7 @@ export default () => {
         })
     }
 
-    const modelName = 'GrandPiano.glb';
+    const modelName = 'piano/GrandPiano.glb';
     let p1 = loadModel( { filePath: baseUrl, fileName: modelName, pos: { x: 0, y: 0, z: 0 } } ).then( result => { vehicleObj = result } );
 
     let loadPromisesArr = [ p1 ];
@@ -500,12 +535,12 @@ export default () => {
             for (var b = 1; b < 8; b++) {
                 for (var i = 0; i < noteTypesArray[keyColor].length; i++) {
 
-                    const sound = new THREE.PositionalAudio( listener );
+                    const sound = new THREE.Audio( listener );
                     const audioLoader = new THREE.AudioLoader();
                     audioLoader.load(  'https://webaverse.github.io/piano/audio/keys/' + noteTypesArray[keyColor][i] + keyTypes[keyColor] + b.toString() +'.ogg', function( buffer ) {
                         sound.setBuffer( buffer );
-                        sound.setRefDistance( 1 );
-                        sound.setVolume( 0.25 );
+                        //sound.setRefDistance( 1 );
+                        sound.setVolume( 1 );
                     });
                     
                     app.add( sound );
@@ -530,10 +565,51 @@ export default () => {
 
     useFrame(( { timeDiff } ) => {
 
+        const session = useRenderer().xr.getSession();
+
+        if(session && localPlayer.avatar) {
+            let fingerLeft = localPlayer.avatar.modelBones.Left_indexFinger1;
+            let fingerRight = localPlayer.avatar.modelBones.Right_indexFinger1;
+
+            let realPosLeft = new THREE.Vector3();
+            let realPosRight = new THREE.Vector3();
+            fingerLeft.getWorldPosition(realPosLeft);
+            fingerRight.getWorldPosition(realPosRight);
+
+            const quaternion = new THREE.Quaternion();
+            quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI*0.5);
+
+            const raycasterLeft = new THREE.Raycaster();
+            const raycasterRight = new THREE.Raycaster();
+            raycasterLeft.set(realPosLeft, new THREE.Vector3(0,-1,0));
+            raycasterRight.set(realPosRight, new THREE.Vector3(0,-1,0));
+
+            const intersectsLeft = raycasterLeft.intersectObjects( whiteKeyObjs );
+            const intersectsRight = raycasterRight.intersectObjects( whiteKeyObjs );
+
+            if(intersectsLeft.length > 0) {
+                for (var i = whiteKeyObjs.length - 1; i >= 0; i--) {
+                    if(whiteKeyObjs[i] === intersectsLeft[0].object && intersectsLeft[0].distance < 0.025) {
+                        _playKeyIndex(i);
+                    }
+                }
+            }
+
+            if(intersectsRight.length > 0) {
+                for (var i = whiteKeyObjs.length - 1; i >= 0; i--) {
+                    if(whiteKeyObjs[i] === intersectsRight[0].object && intersectsRight[0].distance < 0.025) {
+                        _playKeyIndex(i);
+                    }
+                }
+            }
+
+
+        }
+
 
     });
 
-    useActivate(() => {
+    /*useActivate(() => {
 
       sitSpec = app.getComponent('sit');
       if (sitSpec) {
@@ -553,7 +629,7 @@ export default () => {
         app.wear(true);
       }
     
-    });
+    });*/
 
     app.addEventListener('wearupdate', e => {
       if(e.wear) {
